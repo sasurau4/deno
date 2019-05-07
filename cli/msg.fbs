@@ -79,6 +79,17 @@ union Any {
   WorkerPostMessage,
   Write,
   WriteRes,
+  RandRange,
+  RandRangeRes,
+}
+
+table RandRange {
+  from: uint32;
+  to: uint32;
+}
+
+table RandRangeRes {
+  result: uint32;
 }
 
 enum ErrorKind: byte {

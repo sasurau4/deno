@@ -51,6 +51,7 @@ use tokio::net::TcpStream;
 use tokio_process::CommandExt;
 use tokio_threadpool;
 use utime;
+use rand::{Rng, thread_rng};
 
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
@@ -214,6 +215,7 @@ pub fn op_selector_std(inner_type: msg::Any) -> Option<OpCreator> {
     // them.
     msg::Any::WorkerGetMessage => Some(op_worker_get_message),
     msg::Any::WorkerPostMessage => Some(op_worker_post_message),
+    msg::Any::RandRange => Some(op_rand_range),
 
     _ => None,
   }
@@ -2082,4 +2084,50 @@ fn op_host_post_message(
     ))
   });
   Box::new(op)
+}
+
+fn op_rand_range(
+    _state: &ThreadSafeState,
+    base: &msg::Base,
+    data: deno_buf,
+    ) -> Box<OpWithError> {
+    assert_eq!(data.len(), 0);
+    // Decode the message as RandRange
+    let inner =base.inner_as_rand_range().unwrap();
+    // Get the command id, used to respond to async calls
+    let cmd_id = base.cmd_id();
+    // Get `from` and `to` out of the buffer
+    let from =inner.from();
+    let to = inner.to();
+
+    // Wrap our potentiallyslow code and respond code here
+    // Based on dispatch.sendSync and dispatch.sendAsync,
+    // base.sync() will be true or false.
+    // If true, blocking() will spawn the task on the main thread
+    // Else, blocking() would spawn it in the Tokio thread pool
+    blocking(base.sync(), move || -> OpResult {
+        // Actual random number generation code!
+        let result = thread_rng().gen_range(from, to);
+
+        // Prepare respond message serialization
+        // Treat these as boilerplate code for now
+        let builder = &mut FlatBufferBuilder::new();
+        // We want the message type to be RandRangeRes
+        let inner = msg::RandRangeRes::create(
+            builder,
+            &msg::RandRangeResArgs {
+                result, // put in our result here
+            },
+         );
+        // Get message serialized
+        Ok(serialize_response(
+                cmd_id, // Used to reply to TypeScript if this is an async call
+                builder,
+                msg::BaseArgs {
+                    inner: Some(inner.as_union_value()),
+                    inner_type: msg::Any::RandRangeRes,
+                    ..Default::default()
+                },
+         ))
+    })
 }
