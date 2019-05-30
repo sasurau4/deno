@@ -50,6 +50,7 @@ main_extern_rlib = [
   "tokio_threadpool",
   "url",
   "utime",
+  "net2",
 ]
 if (is_win) {
   main_extern_rlib += [ "winapi" ]

@@ -40,6 +40,7 @@ use futures::Sink;
 use futures::Stream;
 use hyper;
 use hyper::rt::Future;
+use net2::TcpBuilder;
 use rand::{thread_rng, Rng};
 use remove_dir_all::remove_dir_all;
 use std;
@@ -52,6 +53,7 @@ use std::time::{Duration, Instant, UNIX_EPOCH};
 use tokio;
 use tokio::net::TcpListener;
 use tokio::net::TcpStream;
+use tokio::reactor::Handle;
 use tokio_process::CommandExt;
 use tokio_threadpool;
 use utime;
@@ -1655,7 +1657,12 @@ fn op_listen(
 
   Box::new(futures::future::result((move || {
     let addr = resolve_addr(address).wait()?;
-    let listener = TcpListener::bind(&addr)?;
+    let std_listener = TcpBuilder::new_v4()?
+      .reuse_address(true)?
+      .bind(addr)?
+      .to_tcp_listener()?;
+    let listener = TcpListener::from_std(std_listener, &Handle::default())?;
+    // let listener = TcpListener::bind(&addr)?;
     let resource = resources::add_tcp_listener(listener);
 
     let builder = &mut FlatBufferBuilder::new();
