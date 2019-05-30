@@ -8,14 +8,14 @@ import {
   SeekMode,
   SyncReader,
   SyncWriter,
-  SyncSeeker,
-} from './io';
-import * as dispatch from './dispatch';
-import { sendAsyncMinimal } from './dispatch_minimal';
-import * as msg from 'gen/cli/msg_generated';
-import { assert } from './util';
-import * as flatbuffers from './flatbuffers';
-import { DenoError, ErrorKind } from './errors';
+  SyncSeeker
+} from "./io";
+import * as dispatch from "./dispatch";
+import { sendAsyncMinimal } from "./dispatch_minimal";
+import * as msg from "gen/cli/msg_generated";
+import { assert } from "./util";
+import * as flatbuffers from "./flatbuffers";
+import { DenoError, ErrorKind } from "./errors";
 
 const OP_READ = 1;
 const OP_WRITE = 2;
@@ -46,7 +46,7 @@ function resOpen(baseRes: null | msg.Base): File {
  *
  *       const file = Deno.openSync("/foo/bar.txt");
  */
-export function openSync(filename: string, mode: OpenMode = 'r'): File {
+export function openSync(filename: string, mode: OpenMode = "r"): File {
   return resOpen(dispatch.sendSync(...reqOpen(filename, mode)));
 }
 
@@ -58,7 +58,7 @@ export function openSync(filename: string, mode: OpenMode = 'r'): File {
  */
 export async function open(
   filename: string,
-  mode: OpenMode = 'r'
+  mode: OpenMode = "r"
 ): Promise<File> {
   return resOpen(await dispatch.sendAsync(...reqOpen(filename, mode)));
 }
@@ -108,7 +108,7 @@ export function readSync(rid: number, p: Uint8Array): ReadResult {
 export async function read(rid: number, p: Uint8Array): Promise<ReadResult> {
   const nread = await sendAsyncMinimal(OP_READ, rid, p);
   if (nread < 0) {
-    throw new Error('read error');
+    throw new Error("read error");
   } else if (nread == 0) {
     return { nread, eof: true };
   } else {
@@ -161,7 +161,7 @@ export function writeSync(rid: number, p: Uint8Array): number {
 export async function write(rid: number, p: Uint8Array): Promise<number> {
   let result = await sendAsyncMinimal(OP_WRITE, rid, p);
   if (result < 0) {
-    throw new DenoError(ErrorKind.BrokenPipe, 'write error');
+    throw new DenoError(ErrorKind.BrokenPipe, "write error");
   } else {
     return result;
   }
@@ -258,34 +258,34 @@ export const stderr = new File(2);
 
 export type OpenMode =
   /** Read-only. Default. Starts at beginning of file. */
-  | 'r'
+  | "r"
   /** Read-write. Start at beginning of file. */
-  | 'r+'
+  | "r+"
   /** Write-only. Opens and truncates existing file or creates new one for
    * writing only.
    */
-  | 'w'
+  | "w"
   /** Read-write. Opens and truncates existing file or creates new one for
    * writing and reading.
    */
-  | 'w+'
+  | "w+"
   /** Write-only. Opens existing file or creates new one. Each write appends
    * content to the end of file.
    */
-  | 'a'
+  | "a"
   /** Read-write. Behaves like "a" and allows to read from file. */
-  | 'a+'
+  | "a+"
   /** Write-only. Exclusive create - creates new file only if one doesn't exist
    * already.
    */
-  | 'x'
+  | "x"
   /** Read-write. Behaves like `x` and allows to read from file. */
-  | 'x+';
+  | "x+";
 
 /** A factory function for creating instances of `File` associated with the
  * supplied file name.
  * @internal
  */
 export function create(filename: string): Promise<File> {
-  return open(filename, 'w+');
+  return open(filename, "w+");
 }
