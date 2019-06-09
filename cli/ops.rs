@@ -40,13 +40,12 @@ use futures::Sink;
 use futures::Stream;
 use hyper;
 use hyper::rt::Future;
-use net2::TcpBuilder;
 use rand::{thread_rng, Rng};
 use remove_dir_all::remove_dir_all;
 use std;
 use std::convert::From;
 use std::fs;
-use std::net::Shutdown;
+use std::net::{Shutdown, SocketAddr};
 use std::path::PathBuf;
 use std::process::Command;
 use std::time::{Duration, Instant, UNIX_EPOCH};
@@ -1657,12 +1656,13 @@ fn op_listen(
 
   Box::new(futures::future::result((move || {
     let addr = resolve_addr(address).wait()?;
-    let std_listener = TcpBuilder::new_v4()?
-      .reuse_address(true)?
-      .bind(addr)?
-      .to_tcp_listener()?;
+    let tcp_builder = match addr {
+      SocketAddr::V4(_) => net2::TcpBuilder::new_v4()?,
+      SocketAddr::V6(_) => net2::TcpBuilder::new_v6()?,
+    };
+    let std_listener =
+      tcp_builder.reuse_address(true)?.bind(addr)?.listen(128)?;
     let listener = TcpListener::from_std(std_listener, &Handle::default())?;
-    // let listener = TcpListener::bind(&addr)?;
     let resource = resources::add_tcp_listener(listener);
 
     let builder = &mut FlatBufferBuilder::new();
