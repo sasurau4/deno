@@ -45,7 +45,9 @@ use remove_dir_all::remove_dir_all;
 use std;
 use std::convert::From;
 use std::fs;
-use std::net::{Shutdown, SocketAddr};
+use std::net::{
+  Ipv4Addr, Ipv6Addr, Shutdown, SocketAddr, SocketAddrV4, SocketAddrV6,
+};
 use std::path::PathBuf;
 use std::process::Command;
 use std::time::{Duration, Instant, UNIX_EPOCH};
@@ -1752,12 +1754,30 @@ fn op_dial(
           SocketAddr::V4(_) => net2::TcpBuilder::new_v4().unwrap(),
           SocketAddr::V6(_) => net2::TcpBuilder::new_v6().unwrap(),
         };
+
         let std_tcp_stream = tcp_builder
-          .reuse_address(true)
-          .unwrap()
-          .to_tcp_stream()
-          .unwrap();
-        TcpStream::connect_std(std_tcp_stream, &addr, &Handle::default())
+              .reuse_address(true)
+              .unwrap();
+
+        // Windows need bind before connect.
+        // https://docs.rs/tokio/0.1.21/tokio/net/struct.TcpStream.html#method.connect_std
+        if cfg!(windows)   {
+          let addr_any = match addr {
+              SocketAddr::V4(_) => {
+                  let any = Ipv4Addr::new(0, 0, 0, 0);
+                  let addr = SocketAddrV4::new(any, 0);
+                  SocketAddr::V4(addr)
+              },
+              SocketAddr::V6(_) => {
+                  let any = Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 0);
+                  let addr = SocketAddrV6::new(any, 0, 0, 0);
+                  SocketAddr::V6(addr)
+              },
+          };
+          std_tcp_stream.bind(addr_any).unwrap();
+        };
+
+        TcpStream::connect_std(std_tcp_stream.to_tcp_stream().unwrap(), &addr, &Handle::default())
           .map_err(DenoError::from)
           .and_then(move |tcp_stream| new_conn(cmd_id, tcp_stream))
       });
