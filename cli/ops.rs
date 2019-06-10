@@ -1757,12 +1757,9 @@ fn op_dial(
           .unwrap()
           .to_tcp_stream()
           .unwrap();
-        return TcpStream::connect_std(
-          std_tcp_stream,
-          &addr,
-          &Handle::default(),
-        ).map_err(DenoError::from)
-        .and_then(move |tcp_stream| new_conn(cmd_id, tcp_stream));
+        TcpStream::connect_std(std_tcp_stream, &addr, &Handle::default())
+          .map_err(DenoError::from)
+          .and_then(move |tcp_stream| new_conn(cmd_id, tcp_stream))
       });
   Box::new(op)
 }
