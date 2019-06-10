@@ -1748,9 +1748,21 @@ fn op_dial(
     resolve_addr(address)
       .map_err(DenoError::from)
       .and_then(move |addr| {
-        TcpStream::connect(&addr)
-          .map_err(DenoError::from)
-          .and_then(move |tcp_stream| new_conn(cmd_id, tcp_stream))
+        let tcp_builder = match addr {
+          SocketAddr::V4(_) => net2::TcpBuilder::new_v4().unwrap(),
+          SocketAddr::V6(_) => net2::TcpBuilder::new_v6().unwrap(),
+        };
+        let std_tcp_stream = tcp_builder
+          .reuse_address(true)
+          .unwrap()
+          .to_tcp_stream()
+          .unwrap();
+        return TcpStream::connect_std(
+          std_tcp_stream,
+          &addr,
+          &Handle::default(),
+        ).map_err(DenoError::from)
+        .and_then(move |tcp_stream| new_conn(cmd_id, tcp_stream));
       });
   Box::new(op)
 }
