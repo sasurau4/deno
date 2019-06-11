@@ -1663,7 +1663,7 @@ fn op_listen(
       SocketAddr::V6(_) => net2::TcpBuilder::new_v6()?,
     };
     let std_listener =
-      tcp_builder.reuse_address(true)?.bind(addr)?.listen(128)?;
+      tcp_builder.reuse_address(true)?.bind(addr)?.listen(1024)?;
     let listener = TcpListener::from_std(std_listener, &Handle::default())?;
     let resource = resources::add_tcp_listener(listener);
 
