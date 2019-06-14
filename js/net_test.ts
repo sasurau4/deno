@@ -107,7 +107,8 @@ testPerm({ net: true }, async function netListenAsyncIterator(): Promise<void> {
  */
 
 testPerm({ net: true }, async function netCloseReadSuccess(): Promise<void> {
-  const addr = "127.0.0.1:4500";
+  const port = Deno.platform.os === "win" ? "4501" : "4500";
+  const addr = `127.0.0.1:${port}`;
   const listener = Deno.listen("tcp", addr);
   const closeDeferred = deferred();
   const closeReadDeferred = deferred();
