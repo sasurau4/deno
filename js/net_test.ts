@@ -196,7 +196,6 @@ testPerm({ net: true }, async function netCloseWriteSuccess(): Promise<void> {
   assertEquals(3, buf[2]);
   // Check write should be closed
   let err;
-  console.log("HOGE");
   try {
     await conn.write(new Uint8Array([1, 2, 3]));
   } catch (e) {

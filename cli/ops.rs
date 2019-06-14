@@ -45,16 +45,17 @@ use remove_dir_all::remove_dir_all;
 use std;
 use std::convert::From;
 use std::fs;
-use std::net::{
-  Ipv4Addr, Ipv6Addr, Shutdown, SocketAddr, SocketAddrV4, SocketAddrV6,
-};
+// use std::net::{
+//   Ipv4Addr, Ipv6Addr, Shutdown, SocketAddr, SocketAddrV4, SocketAddrV6,
+// };
+use std::net::Shutdown;
 use std::path::PathBuf;
 use std::process::Command;
 use std::time::{Duration, Instant, UNIX_EPOCH};
 use tokio;
 use tokio::net::TcpListener;
 use tokio::net::TcpStream;
-use tokio::reactor::Handle;
+// use tokio::reactor::Handle;
 use tokio_process::CommandExt;
 use tokio_threadpool;
 use utime;
@@ -1658,13 +1659,14 @@ fn op_listen(
 
   Box::new(futures::future::result((move || {
     let addr = resolve_addr(address).wait()?;
-    let tcp_builder = match addr {
-      SocketAddr::V4(_) => net2::TcpBuilder::new_v4()?,
-      SocketAddr::V6(_) => net2::TcpBuilder::new_v6()?,
-    };
-    let std_listener =
-      tcp_builder.reuse_address(true)?.bind(addr)?.listen(128)?;
-    let listener = TcpListener::from_std(std_listener, &Handle::default())?;
+    // let tcp_builder = match addr {
+    //   SocketAddr::V4(_) => net2::TcpBuilder::new_v4()?,
+    //   SocketAddr::V6(_) => net2::TcpBuilder::new_v6()?,
+    // };
+    // let std_listener =
+    //   tcp_builder.reuse_address(true)?.bind(addr)?.listen(1024)?;
+    // let listener = TcpListener::from_std(std_listener, &Handle::default())?;
+    let listener = TcpListener::bind(&addr)?;
     let resource = resources::add_tcp_listener(listener);
 
     let builder = &mut FlatBufferBuilder::new();
@@ -1750,36 +1752,39 @@ fn op_dial(
     resolve_addr(address)
       .map_err(DenoError::from)
       .and_then(move |addr| {
-        let tcp_builder = match addr {
-          SocketAddr::V4(_) => net2::TcpBuilder::new_v4().unwrap(),
-          SocketAddr::V6(_) => net2::TcpBuilder::new_v6().unwrap(),
-        };
+        TcpStream::connect(&addr)
+            .map_err(DenoError::from)
+            .and_then(move |tcp_stream| new_conn(cmd_id, tcp_stream))
+        // let tcp_builder = match addr {
+        //   SocketAddr::V4(_) => net2::TcpBuilder::new_v4().unwrap(),
+        //   SocketAddr::V6(_) => net2::TcpBuilder::new_v6().unwrap(),
+        // };
 
-        let std_tcp_stream = tcp_builder
-              .reuse_address(true)
-              .unwrap();
+        // let std_tcp_stream = tcp_builder
+        //       .reuse_address(true)
+        //       .unwrap();
 
-        // Windows need bind before connect.
-        // https://docs.rs/tokio/0.1.21/tokio/net/struct.TcpStream.html#method.connect_std
-        if cfg!(windows)   {
-          let addr_any = match addr {
-              SocketAddr::V4(_) => {
-                  let any = Ipv4Addr::new(0, 0, 0, 0);
-                  let addr = SocketAddrV4::new(any, 0);
-                  SocketAddr::V4(addr)
-              },
-              SocketAddr::V6(_) => {
-                  let any = Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 0);
-                  let addr = SocketAddrV6::new(any, 0, 0, 0);
-                  SocketAddr::V6(addr)
-              },
-          };
-          std_tcp_stream.bind(addr_any).unwrap();
-        };
+        // // Windows need bind before connect.
+        // // https://docs.rs/tokio/0.1.21/tokio/net/struct.TcpStream.html#method.connect_std
+        // if cfg!(windows)   {
+        //   let addr_any = match addr {
+        //       SocketAddr::V4(_) => {
+        //           let any = Ipv4Addr::new(0, 0, 0, 0);
+        //           let addr = SocketAddrV4::new(any, 0);
+        //           SocketAddr::V4(addr)
+        //       },
+        //       SocketAddr::V6(_) => {
+        //           let any = Ipv6Addr::new(0, 0, 0, 0, 0, 0, 0, 0);
+        //           let addr = SocketAddrV6::new(any, 0, 0, 0);
+        //           SocketAddr::V6(addr)
+        //       },
+        //   };
+        //   std_tcp_stream.bind(addr_any).unwrap();
+        // };
 
-        TcpStream::connect_std(std_tcp_stream.to_tcp_stream().unwrap(), &addr, &Handle::default())
-          .map_err(DenoError::from)
-          .and_then(move |tcp_stream| new_conn(cmd_id, tcp_stream))
+        // TcpStream::connect_std(std_tcp_stream.to_tcp_stream().unwrap(), &addr, &Handle::default())
+        //   .map_err(DenoError::from)
+        //   .and_then(move |tcp_stream| new_conn(cmd_id, tcp_stream))
       });
   Box::new(op)
 }

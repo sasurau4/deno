@@ -10,7 +10,7 @@ from test_util import DenoTestCase, run_tests
 class JsUnitTests(DenoTestCase):
     def test_unit_test_runner(self):
         cmd = [
-            self.deno_exe, "run", "--reload", "--allow-run",
+            self.deno_exe, "run", "--reload", "--allow-run", "--log-debug",
             "js/unit_test_runner.ts"
         ]
         process = subprocess.Popen(
